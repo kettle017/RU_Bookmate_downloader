@@ -44,6 +44,24 @@ headers = {
         'user-agent': ''
 }
 
+def get_auth_token():
+    import webview
+    import urllib.parse
+    from time import sleep
+
+    def get_current_url(window):
+        global auth_token
+        while "yx4483e97bab6e486a9822973109a14d05.oauth.yandex.ru" not in urllib.parse.urlparse(window.get_current_url()).netloc:
+            pass
+        url = urllib.parse.urlparse(window.get_current_url())
+        auth_token = urllib.parse.parse_qs(url.fragment)['access_token'][0]
+        window.destroy()
+        return auth_token
+
+    window = webview.create_window('Вход в аккаунт', 'https://oauth.yandex.ru/authorize?response_type=token&client_id=4483e97bab6e486a9822973109a14d05')
+    webview.start(get_current_url, window)
+    return auth_token
+
 def replace_forbidden_chars(filename):
     forbidden_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
     new_filename = filename
@@ -113,6 +131,16 @@ if __name__ == "__main__":
     argparser.add_argument("--comicbookid", help="comiksid, take from the book url")                                            
 
     args = argparser.parse_args()
+
+    if os.path.isfile("token.txt"):
+        with open("token.txt") as file:
+            headers['auth-token'] = file.read()
+    
+    if not headers['auth-token']:
+        headers['auth-token'] = get_auth_token()
+        with open("token.txt", "w") as file:
+            file.write(headers['auth-token'])
+
     if ((args.textbookid == None) and (args.audiobookid == None) and (args.comicbookid == None)):
         print("the following arguments are required: --textbookid or --audiobookid or --comiksid")
 
@@ -121,9 +149,7 @@ if __name__ == "__main__":
         info = json.loads(asyncio.run(send_request(info_url,None)).text)
         picture_url = info["book"]["cover"]["large"]
         name = info["book"]["title"]
-        print(name)
         name = replace_forbidden_chars(name)
-        print(name)
         url = f"https://api.bookmate.yandex.net/api/v5/books/{args.textbookid}/content/v4"
         download_dir = f"mybooks/textbooks/{name}/"
         os.makedirs(os.path.dirname(download_dir), exist_ok=True)
@@ -144,9 +170,7 @@ if __name__ == "__main__":
         picture_url = info["comicbook"]["cover"]["large"]
 
         name = info["comicbook"]["title"]
-        print(name)
         name = replace_forbidden_chars(name)
-        print(name)
         url =  f"https://api.bookmate.yandex.net/api/v5/comicbooks/{args.comicbookid}/metadata.json"
         download_dir = f"mybooks/comicbooks/{name}/"
         os.makedirs(os.path.dirname(download_dir), exist_ok=True)
@@ -166,18 +190,13 @@ if __name__ == "__main__":
             with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
                 file.write(json.dumps(info,ensure_ascii=False))
             print(f"File downloaded successfully to {download_dir}{name}.json")
-        
-
-
 
     if (args.audiobookid):
         info_url = f"https://api.bookmate.yandex.net/api/v5/audiobooks/{args.audiobookid}"
         info = json.loads(asyncio.run(send_request(info_url,None)).text)
         picture_url = info["audiobook"]["cover"]["large"]
         name = info["audiobook"]["title"]
-        print(name)
         name = replace_forbidden_chars(name)
-        print(name)
         url = f'https://api.bookmate.yandex.net/api/v5/audiobooks/{args.audiobookid}/playlists.json'
         download_dir = f"mybooks/audiobooks/{name}/"
         os.makedirs(os.path.dirname(download_dir), exist_ok=True)
