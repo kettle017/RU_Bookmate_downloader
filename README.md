@@ -13,7 +13,7 @@
 <img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/7631e8cc-e625-40c0-b7ef-a08ccf10449a/>
 3)Скачать книгу с ID
 <h3 align="left"><pre>python RUBookmatedownloader.py --textbookid ID</pre></h3>
-<img src=(https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/d105a7a2-a3d8-4a23-9b3d-1b0e8cfc64e0/> 
+<img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/5c1f2c52-7afb-4eb2-a61b-e214532d8b92/> 
 4)Скачать комикс с ID
 <h3 align="left"><pre>python RUBookmatedownloader.py --comicbookid ID</pre></h3>
 <img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/9f50377e-55da-4d3a-830e-32e68b3ea847/>
