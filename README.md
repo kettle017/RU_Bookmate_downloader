@@ -1,18 +1,8 @@
 # RU_Bookmate_downloader
-Для работы скрипта требуется client_token.
-<h2 align="left">Действия для получения токена:</h2>
-Перейти по ссылке: https://oauth.yandex.ru/authorize?response_type=token&client_id=4483e97bab6e486a9822973109a14d05
-
-Авторизоваться в аккаунт Яндекс
-
-На странице "Авторизация в приложении Букмейт не удалась" скопировать токен после access_token= и до &.</h3>
-<img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/188556ef-4adf-4621-bd79-6c8fcfb216fd/>
-
-<h2 align="left">Настройка скрипта и установка зависимостей:</h2>
-Установка зависимостей:
-<h3 align="left"><pre>pip install httpx pillow </pre></h3>
-Установка client_token:
-<img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/5ee6807e-9c68-4ffe-859e-bf192aa38f14/>
+<h2 align="left">Установка зависимостей:</h2>
+<h3 align="left"><pre>pip install httpx pillow pywebview</pre></h3>
+<h2 align="left">Авторизоваться в аккаунт Яндекс</h2>
+<img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/bb3453eb-5d44-4410-b2e1-05193c88333e/>
 
 <h2 align="left">Примеры запуска скрипта:</h2>
 1)Скачать аудиокнигу с ID в максимальном качестве
