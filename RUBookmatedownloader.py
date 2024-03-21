@@ -177,10 +177,10 @@ if __name__ == "__main__":
         resp = asyncio.run(send_request(url, headers))
         if resp :
             download_url = json.loads(resp.text)["uris"]["zip"]
-            asyncio.run(download_file(download_url,f'{download_dir}{name}.zip'))
-        with zipfile.ZipFile(f'{download_dir}{name}.zip', 'r') as zip_ref:
+            asyncio.run(download_file(download_url,f'{download_dir}{name}.cbr'))
+        with zipfile.ZipFile(f'{download_dir}{name}.cbr', 'r') as zip_ref:
             zip_ref.extractall(download_dir)
-        os.remove(f'{download_dir}{name}.zip')
+        # os.remove(f'{download_dir}{name}.zip')
         shutil.rmtree(download_dir+"preview", ignore_errors=False, onerror=None)
 
         create_pdf_from_images(download_dir, f"{download_dir}{name}.pdf")
