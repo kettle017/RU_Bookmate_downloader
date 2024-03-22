@@ -1,6 +1,8 @@
 import random
 import os
 import time
+import sys
+import warnings
 import json
 import argparse
 import shutil
@@ -9,6 +11,9 @@ collections.Iterable = collections.abc.Iterable
 collections.Mapping = collections.abc.Mapping
 collections.MutableSet = collections.abc.MutableSet
 collections.MutableMapping = collections.abc.MutableMapping
+import ebooklib
+from ebooklib import epub
+from bs4 import BeautifulSoup
 import httpx
 import asyncio
 import zipfile
@@ -39,7 +44,7 @@ headers = {
         'bookmate-websocket-version': '',
         'device-idfa': '', 
         'onyx-preinstall': 'false',
-        'auth-token': '',  #<================================================================================ ADD TOKEN
+        'auth-token': '',
         'accept-encoding': '',
         'user-agent': ''
 }
@@ -73,6 +78,7 @@ def replace_forbidden_chars(filename):
 
 async def download_file(url, file_path):
     is_download = False
+    count = 0
     while(not is_download):
         async with httpx.AsyncClient(http2=True) as client:
             response = await client.get(url,headers=headers,timeout=None)
@@ -90,11 +96,16 @@ async def download_file(url, file_path):
                     print(f"File downloaded successfully to {file_path}")
             else:
                 print(f"Failed to download file. Status code: {response.status_code}")
+                count+=1
+                if count == 3:
+                    print("Failed to download the file check if the id is correct or try again later")
+                    sys.exit()
                 time.sleep(5)
             
 
 async def send_request(url, headers):
     is_download = False
+    count = 0
     while(not is_download):
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers,timeout=None)
@@ -103,6 +114,10 @@ async def send_request(url, headers):
                 return(response)
             else:
                 print(f"Failed to send request. Status code: {response.status_code}")
+                count+=1
+                if count == 3:
+                    print("Failed to download the file check if the id is correct or try again later")
+                    sys.exit()
                 time.sleep(5)
                 
 def create_pdf_from_images(images_folder, output_pdf):
@@ -122,6 +137,25 @@ def create_pdf_from_images(images_folder, output_pdf):
         img_path = os.path.join(images_folder, image)
         os.remove(img_path)
 
+def epub_to_fb2(epub_path,fb2_path):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        book = epub.read_epub(epub_path)
+
+    fb2_content = '<?xml version="1.0" encoding="UTF-8"?>\n<body>'
+    for item in book.get_items():
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            content = item.get_content()
+            soup = BeautifulSoup(content, 'html.parser')
+            text_content = soup.get_text()
+            fb2_content += f'<p>{text_content}</p>'
+
+    fb2_content += '</body>\n</fb2>'
+
+    with open(fb2_path, 'w', encoding='utf-8') as fb2_file:
+        fb2_file.write(fb2_content)
+    
+    print(f"fb2 file save to {fb2_path}")
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
@@ -163,6 +197,7 @@ if __name__ == "__main__":
             with open(f"{download_dir}{name}.epub", 'wb') as file:
                 file.write(resp.content)
             print(f"File downloaded successfully to {download_dir}{name}.epub")
+        epub_to_fb2(f"{download_dir}{name}.epub",f"{download_dir}{name}.fb2")
 
     if (args.comicbookid):
         info_url = f"https://api.bookmate.yandex.net/api/v5/comicbooks/{args.comicbookid}"
@@ -216,6 +251,10 @@ if __name__ == "__main__":
             if bitrate == 2:
                 for child in range(0,len(json_data)):
                     download_urls.append(json_data[child]['offline']['min_bit_rate']['url'])
-            for download_url in range(0,len(download_urls)):
+
+            files = os.listdir(download_dir)
+            count = sum(1 for file in files if file.startswith('Глава_'))
+
+            for download_url in range(count,len(download_urls)):
                 download_urls[download_url] = download_urls[download_url].replace(".m3u8",".m4a")
                 asyncio.run(download_file(download_urls[download_url],f'{download_dir}Глава_{download_url+1}.m4a'))

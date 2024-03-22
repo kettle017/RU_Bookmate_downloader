@@ -1,6 +1,6 @@
 # RU_Bookmate_downloader
 <h2 align="left">Установка зависимостей:</h2>
-<h3 align="left"><pre>pip install httpx[http2] pillow pywebview reportlab</pre></h3>
+<h3 align="left"><pre>pip install httpx[http2] pillow pywebview reportlab ebooklib BeautifulSoup4</pre></h3>
 <h2 align="left">Авторизоваться в аккаунт Яндекс</h2>
 <img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/bb3453eb-5d44-4410-b2e1-05193c88333e/>
 
