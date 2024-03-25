@@ -290,11 +290,13 @@ if __name__ == "__main__":
 
     if (args.serials):
         url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}/episodes'
+        info_url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}'
         book_urls = json.loads(asyncio.run(send_request(url,headers=headers)).text)['episodes']
+        serials_name = json.loads(asyncio.run(send_request(info_url,headers=headers)).text)['book']['title']
         for child in range(0,len(book_urls)):
                 episod_url = f"https://api.bookmate.yandex.net/api/v5/books/{book_urls[child]['uuid']}/content/v4"
                 name = f"{child+1}. {book_urls[child]['title']}"
-                download_dir = f"mybooks/textbooks/{args.serials}/{name}/{child+1}. "
+                download_dir = f"mybooks/textbooks/{serials_name}/{name}/{child+1}. "
                 os.makedirs(os.path.dirname(download_dir), exist_ok=True)
                 resp = asyncio.run(send_request(episod_url,headers))
                 if resp:
