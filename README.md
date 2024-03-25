@@ -5,7 +5,7 @@
 <img src=https://github.com/kettle017/RU_Bookmate_downloader/assets/37309120/bb3453eb-5d44-4410-b2e1-05193c88333e/>
 
 <h2 align="left">Примеры запуска скрипта:</h2>
-Для определения нужного флага смотрите на URL, в нем всегда есть полдсказка!
+Для определения нужного флага смотрите на URL, в нем всегда есть полдсказка! <br/>
 1)Скачать аудиокнигу с ID в максимальном качестве
 <h3 align="left"><pre>python RUBookmatedownloader.py --maxbitrate True --audiobooks ID</pre></h3>
 2)Скачать аудиокнигу с ID в обычном качестве
