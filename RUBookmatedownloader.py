@@ -80,7 +80,7 @@ async def download_file(url, file_path):
     is_download = False
     count = 0
     while(not is_download):
-        async with httpx.AsyncClient(http2=True) as client:
+        async with httpx.AsyncClient(http2=True,verify=False) as client:
             response = await client.get(url,headers=headers,timeout=None)
             if response.status_code == 200:
                 is_download = True
@@ -142,7 +142,7 @@ def epub_to_fb2(epub_path,fb2_path):
         warnings.simplefilter("ignore")
         book = epub.read_epub(epub_path)
 
-    fb2_content = '<?xml version="1.0" encoding="UTF-8"?>\n<body>'
+    fb2_content = '<?xml version="1.0" encoding="UTF-8"?>\n<fb2 xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">\n<body>'
     for item in book.get_items():
         if item.get_type() == ebooklib.ITEM_DOCUMENT:
             content = item.get_content()
@@ -157,12 +157,96 @@ def epub_to_fb2(epub_path,fb2_path):
     
     print(f"fb2 file save to {fb2_path}")
 
+
+def download_text_book(uuid):
+    info_url = f"https://api.bookmate.yandex.net/api/v5/books/{uuid}"
+    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    picture_url = info["book"]["cover"]["large"]
+    name = info["book"]["title"]
+    name = replace_forbidden_chars(name)
+    url = f"https://api.bookmate.yandex.net/api/v5/books/{uuid}/content/v4"
+    download_dir = f"mybooks/textbooks/{name}/"
+    os.makedirs(os.path.dirname(download_dir), exist_ok=True)
+    asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
+    if info:
+        with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
+            file.write(json.dumps(info,ensure_ascii=False))
+        print(f"File downloaded successfully to {download_dir}{name}.json")
+    resp = asyncio.run(send_request(url,headers))
+    if resp:
+        with open(f"{download_dir}{name}.epub", 'wb') as file:
+            file.write(resp.content)
+        print(f"File downloaded successfully to {download_dir}{name}.epub")
+    epub_to_fb2(f"{download_dir}{name}.epub",f"{download_dir}{name}.fb2")
+
+def download_comic_book(uuid):
+    info_url = f"https://api.bookmate.yandex.net/api/v5/comicbooks/{uuid}"
+    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    picture_url = info["comicbook"]["cover"]["large"]
+
+    name = info["comicbook"]["title"]
+    name = replace_forbidden_chars(name)
+    url =  f"https://api.bookmate.yandex.net/api/v5/comicbooks/{uuid}/metadata.json"
+    download_dir = f"mybooks/comicbooks/{name}/"
+    os.makedirs(os.path.dirname(download_dir), exist_ok=True)
+    resp = asyncio.run(send_request(url, headers))
+    if resp :
+        download_url = json.loads(resp.text)["uris"]["zip"]
+        asyncio.run(download_file(download_url,f'{download_dir}{name}.cbr'))
+    with zipfile.ZipFile(f'{download_dir}{name}.cbr', 'r') as zip_ref:
+        zip_ref.extractall(download_dir)
+    # os.remove(f'{download_dir}{name}.zip')
+    shutil.rmtree(download_dir+"preview", ignore_errors=False, onerror=None)
+
+    create_pdf_from_images(download_dir, f"{download_dir}{name}.pdf")
+
+    asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
+    if info:
+        with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
+            file.write(json.dumps(info,ensure_ascii=False))
+        print(f"File downloaded successfully to {download_dir}{name}.json")
+
+def download_audio_book (uuid,series=None):
+    info_url = f"https://api.bookmate.yandex.net/api/v5/audiobooks/{uuid}"
+    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    picture_url = info["audiobook"]["cover"]["large"]
+    name = info["audiobook"]["title"]
+    name = replace_forbidden_chars(name)
+    url = f'https://api.bookmate.yandex.net/api/v5/audiobooks/{uuid}/playlists.json'
+    download_dir = f"mybooks/audiobooks/{series}{name}/"
+    os.makedirs(os.path.dirname(download_dir), exist_ok=True)
+    asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
+    if info:
+        with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
+            file.write(json.dumps(info,ensure_ascii=False))
+        print(f"File downloaded successfully to {download_dir}{name}.json")
+    resp = asyncio.run(send_request(url, headers))
+    if resp :
+        json_data = json.loads(resp.text)['tracks']
+        download_urls = []
+        bitrate = 1 if args.maxbitrate else 2
+        if bitrate == 1:
+            for child in range(0,len(json_data)):
+                download_urls.append(json_data[child]['offline']['max_bit_rate']['url'])
+        if bitrate == 2:
+            for child in range(0,len(json_data)):
+                download_urls.append(json_data[child]['offline']['min_bit_rate']['url'])
+
+        files = os.listdir(download_dir)
+        count = sum(1 for file in files if file.startswith('Глава_'))
+
+        for download_url in range(count,len(download_urls)):
+            download_urls[download_url] = download_urls[download_url].replace(".m3u8",".m4a")
+            asyncio.run(download_file(download_urls[download_url],f'{download_dir}Глава_{download_url+1}.m4a'))
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--audiobookid", help="udiobookid, take from the book url")                                          
+    argparser.add_argument("--audiobooks", help="audiobookid, take from the book url")                                          
     argparser.add_argument("--maxbitrate", help="max-bitrate for download audiobook, defaul min-bitrate",default=False)         
-    argparser.add_argument("--textbookid", help="textbookid, take from the book url")                                           
-    argparser.add_argument("--comicbookid", help="comiksid, take from the book url")                                            
+    argparser.add_argument("--books", help="textbookid, take from the book url")                                           
+    argparser.add_argument("--comicbooks", help="comiksid, take from the book url")                                            
+    argparser.add_argument("--series", help="series, take from the audiobooks series url")                                            
+    argparser.add_argument("--serials", help="serials, take from the book serial url")                                            
 
     args = argparser.parse_args()
 
@@ -175,86 +259,43 @@ if __name__ == "__main__":
         with open("token.txt", "w") as file:
             file.write(headers['auth-token'])
 
-    if ((args.textbookid == None) and (args.audiobookid == None) and (args.comicbookid == None)):
-        print("the following arguments are required: --textbookid or --audiobookid or --comiksid")
+    if ((args.audiobooks == None) and (args.books == None) and (args.comicbooks == None) and (args.series == None) and (args.serials == None)):
+        print("the following arguments are required: --audiobooks or --books or --comicbooks or --series or --serials")
 
-    if (args.textbookid):
-        info_url = f"https://api.bookmate.yandex.net/api/v5/books/{args.textbookid}"
-        info = json.loads(asyncio.run(send_request(info_url,None)).text)
-        picture_url = info["book"]["cover"]["large"]
-        name = info["book"]["title"]
-        name = replace_forbidden_chars(name)
-        url = f"https://api.bookmate.yandex.net/api/v5/books/{args.textbookid}/content/v4"
-        download_dir = f"mybooks/textbooks/{name}/"
-        os.makedirs(os.path.dirname(download_dir), exist_ok=True)
-        asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
-        if info:
-            with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
-                file.write(json.dumps(info,ensure_ascii=False))
-            print(f"File downloaded successfully to {download_dir}{name}.json")
-        resp = asyncio.run(send_request(url,headers))
-        if resp:
-            with open(f"{download_dir}{name}.epub", 'wb') as file:
-                file.write(resp.content)
-            print(f"File downloaded successfully to {download_dir}{name}.epub")
-        epub_to_fb2(f"{download_dir}{name}.epub",f"{download_dir}{name}.fb2")
+    if (args.books):
+       download_text_book(args.books)
 
-    if (args.comicbookid):
-        info_url = f"https://api.bookmate.yandex.net/api/v5/comicbooks/{args.comicbookid}"
-        info = json.loads(asyncio.run(send_request(info_url,None)).text)
-        picture_url = info["comicbook"]["cover"]["large"]
+    if (args.comicbooks):
+        download_comic_book(args.comicbooks)
 
-        name = info["comicbook"]["title"]
-        name = replace_forbidden_chars(name)
-        url =  f"https://api.bookmate.yandex.net/api/v5/comicbooks/{args.comicbookid}/metadata.json"
-        download_dir = f"mybooks/comicbooks/{name}/"
-        os.makedirs(os.path.dirname(download_dir), exist_ok=True)
-        resp = asyncio.run(send_request(url, headers))
-        if resp :
-            download_url = json.loads(resp.text)["uris"]["zip"]
-            asyncio.run(download_file(download_url,f'{download_dir}{name}.cbr'))
-        with zipfile.ZipFile(f'{download_dir}{name}.cbr', 'r') as zip_ref:
-            zip_ref.extractall(download_dir)
-        # os.remove(f'{download_dir}{name}.zip')
-        shutil.rmtree(download_dir+"preview", ignore_errors=False, onerror=None)
+    if (args.audiobooks):
+        download_audio_book(args.audiobooks,"")
+    
+    if (args.series):
+        url = f'https://api.bookmate.yandex.net/api/v5/series/{args.series}/parts?from=0&page=1&per_page=20' #YPHzxLQf
+        book_urls = json.loads(asyncio.run(send_request(url,headers=headers)).text)['parts']
+        for child in range(0,len(book_urls)):
+            print(book_urls[child]['resource_type'])
+            if book_urls[child]['resource_type'] == "audiobook":
+                print(book_urls[child]['resource']['uuid'])
+                download_audio_book(book_urls[child]['resource']['uuid'],f"{args.series}/")
 
-        create_pdf_from_images(download_dir, f"{download_dir}{name}.pdf")
+    if (args.serials):
+        url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}/episodes' #YPHzxLQf
+        book_urls = json.loads(asyncio.run(send_request(url,headers=headers)).text)['episodes']
+        for child in range(0,len(book_urls)):
+                episod_url = f"https://api.bookmate.yandex.net/api/v5/books/{book_urls[child]['uuid']}/content/v4"
+                name = f"{child+1}. {book_urls[child]['title']}"
+                download_dir = f"mybooks/textbooks/{args.serials}/{name}/"
+                os.makedirs(os.path.dirname(download_dir), exist_ok=True)
+                resp = asyncio.run(send_request(episod_url,headers))
+                if resp:
+                    with open(f"{download_dir}{name}.epub", 'wb') as file:
+                        file.write(resp.content)
+                    print(f"File downloaded successfully to {download_dir}{name}.epub")
+                epub_to_fb2(f"{download_dir}{name}.epub",f"{download_dir}{name}.fb2")
 
-        asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
-        if info:
-            with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
-                file.write(json.dumps(info,ensure_ascii=False))
-            print(f"File downloaded successfully to {download_dir}{name}.json")
 
-    if (args.audiobookid):
-        info_url = f"https://api.bookmate.yandex.net/api/v5/audiobooks/{args.audiobookid}"
-        info = json.loads(asyncio.run(send_request(info_url,None)).text)
-        picture_url = info["audiobook"]["cover"]["large"]
-        name = info["audiobook"]["title"]
-        name = replace_forbidden_chars(name)
-        url = f'https://api.bookmate.yandex.net/api/v5/audiobooks/{args.audiobookid}/playlists.json'
-        download_dir = f"mybooks/audiobooks/{name}/"
-        os.makedirs(os.path.dirname(download_dir), exist_ok=True)
-        asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
-        if info:
-            with open(f"{download_dir}{name}.json", 'w', encoding='utf-8') as file:
-                file.write(json.dumps(info,ensure_ascii=False))
-            print(f"File downloaded successfully to {download_dir}{name}.json")
-        resp = asyncio.run(send_request(url, headers))
-        if resp :
-            json_data = json.loads(resp.text)['tracks']
-            download_urls = []
-            bitrate = 1 if args.maxbitrate else 2
-            if bitrate == 1:
-                for child in range(0,len(json_data)):
-                    download_urls.append(json_data[child]['offline']['max_bit_rate']['url'])
-            if bitrate == 2:
-                for child in range(0,len(json_data)):
-                    download_urls.append(json_data[child]['offline']['min_bit_rate']['url'])
 
-            files = os.listdir(download_dir)
-            count = sum(1 for file in files if file.startswith('Глава_'))
 
-            for download_url in range(count,len(download_urls)):
-                download_urls[download_url] = download_urls[download_url].replace(".m3u8",".m4a")
-                asyncio.run(download_file(download_urls[download_url],f'{download_dir}Глава_{download_url+1}.m4a'))
+
