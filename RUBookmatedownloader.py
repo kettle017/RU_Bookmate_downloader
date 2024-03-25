@@ -24,17 +24,17 @@ from PIL import Image
 UA = {
     1: "Samsung/Galaxy_A51 Android/12 Bookmate/3.7.3",
     2: "Huawei/P40_Lite Android/11 Bookmate/3.7.3",
-    3: "OnePlus/Nord_N10 Android/10 Bookmate/3.7.3",
-    4: "Google/Pixel_4a Android/9 Bookmate/3.7.3",
-    5: "Oppo/Reno_4 Android/8 Bookmate/3.7.3",
-    6: "Xiaomi/Redmi_Note_9 Android/10 Bookmate/3.7.3",
-    7: "Motorola/Moto_G_Power Android/10 Bookmate/3.7.3",
-    8: "Sony/Xperia_10 Android/10 Bookmate/3.7.3",
-    9: "LG/Velvet Android/10 Bookmate/3.7.3",
-    10: "Realme/6_Pro Android/10 Bookmate/3.7.3",
+    3: "OnePlus/Nord_N10 Android/10 Bookmate/3.7.3"
+    # 4: "Google/Pixel_4a Android/9 Bookmate/3.7.3",
+    # 5: "Oppo/Reno_4 Android/8 Bookmate/3.7.3",
+    # 6: "Xiaomi/Redmi_Note_9 Android/10 Bookmate/3.7.3",
+    # 7: "Motorola/Moto_G_Power Android/10 Bookmate/3.7.3",
+    # 8: "Sony/Xperia_10 Android/10 Bookmate/3.7.3",
+    # 9: "LG/Velvet Android/10 Bookmate/3.7.3",
+    # 10: "Realme/6_Pro Android/10 Bookmate/3.7.3",
 }
 headers = {
-        'app-user-agent': UA[random.randint(1,10)],
+        'app-user-agent': UA[random.randint(1,3)],
         'mcc':'',
         'mnc': '',
         'imei': '',
