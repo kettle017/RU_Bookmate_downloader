@@ -136,6 +136,8 @@ def create_pdf_from_images(images_folder, output_pdf):
     for image in images:
         img_path = os.path.join(images_folder, image)
         os.remove(img_path)
+    print(f"File downloaded successfully to {output_pdf}")
+    
 
 def epub_to_fb2(epub_path,fb2_path):
     with warnings.catch_warnings():
@@ -179,7 +181,7 @@ def download_text_book(uuid):
         print(f"File downloaded successfully to {download_dir}{name}.epub")
     epub_to_fb2(f"{download_dir}{name}.epub",f"{download_dir}{name}.fb2")
 
-def download_comic_book(uuid):
+def download_comic_book(uuid,series):
     info_url = f"https://api.bookmate.yandex.net/api/v5/comicbooks/{uuid}"
     info = json.loads(asyncio.run(send_request(info_url,None)).text)
     picture_url = info["comicbook"]["cover"]["large"]
@@ -187,7 +189,7 @@ def download_comic_book(uuid):
     name = info["comicbook"]["title"]
     name = replace_forbidden_chars(name)
     url =  f"https://api.bookmate.yandex.net/api/v5/comicbooks/{uuid}/metadata.json"
-    download_dir = f"mybooks/comicbooks/{name}/"
+    download_dir = f"mybooks/comicbooks/{series}{name}/"
     os.makedirs(os.path.dirname(download_dir), exist_ok=True)
     resp = asyncio.run(send_request(url, headers))
     if resp :
@@ -206,7 +208,7 @@ def download_comic_book(uuid):
             file.write(json.dumps(info,ensure_ascii=False))
         print(f"File downloaded successfully to {download_dir}{name}.json")
 
-def download_audio_book (uuid,series=None):
+def download_audio_book (uuid,series):
     info_url = f"https://api.bookmate.yandex.net/api/v5/audiobooks/{uuid}"
     info = json.loads(asyncio.run(send_request(info_url,None)).text)
     picture_url = info["audiobook"]["cover"]["large"]
@@ -266,27 +268,33 @@ if __name__ == "__main__":
        download_text_book(args.books)
 
     if (args.comicbooks):
-        download_comic_book(args.comicbooks)
+        download_comic_book(args.comicbooks,"")
 
     if (args.audiobooks):
         download_audio_book(args.audiobooks,"")
     
     if (args.series):
-        url = f'https://api.bookmate.yandex.net/api/v5/series/{args.series}/parts?from=0&page=1&per_page=20' #YPHzxLQf
+        url = f'https://api.bookmate.yandex.net/api/v5/series/{args.series}/parts'
+        info_url = f'https://api.bookmate.yandex.net/api/v5/series/{args.series}'
         book_urls = json.loads(asyncio.run(send_request(url,headers=headers)).text)['parts']
+        name = json.loads(asyncio.run(send_request(info_url,headers=headers)).text)['series']['title']
+        print(name)
         for child in range(0,len(book_urls)):
             print(book_urls[child]['resource_type'])
             if book_urls[child]['resource_type'] == "audiobook":
                 print(book_urls[child]['resource']['uuid'])
-                download_audio_book(book_urls[child]['resource']['uuid'],f"{args.series}/")
+                download_audio_book(book_urls[child]['resource']['uuid'],f"{name}/{child+1}. ")
+            if book_urls[child]['resource_type'] == "comicbook":
+                print(book_urls[child]['resource']['uuid'])
+                download_comic_book(book_urls[child]['resource']['uuid'],f"{name}/{child+1}. ")
 
     if (args.serials):
-        url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}/episodes' #YPHzxLQf
+        url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}/episodes'
         book_urls = json.loads(asyncio.run(send_request(url,headers=headers)).text)['episodes']
         for child in range(0,len(book_urls)):
                 episod_url = f"https://api.bookmate.yandex.net/api/v5/books/{book_urls[child]['uuid']}/content/v4"
                 name = f"{child+1}. {book_urls[child]['title']}"
-                download_dir = f"mybooks/textbooks/{args.serials}/{name}/"
+                download_dir = f"mybooks/textbooks/{args.serials}/{name}/{child+1}. "
                 os.makedirs(os.path.dirname(download_dir), exist_ok=True)
                 resp = asyncio.run(send_request(episod_url,headers))
                 if resp:
