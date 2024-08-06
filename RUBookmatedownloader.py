@@ -160,14 +160,14 @@ def epub_to_fb2(epub_path,fb2_path):
     print(f"fb2 file save to {fb2_path}")
 
 
-def download_text_book(uuid):
+def download_text_book(uuid,series):
     info_url = f"https://api.bookmate.yandex.net/api/v5/books/{uuid}"
     info = json.loads(asyncio.run(send_request(info_url,headers)).text)
     picture_url = info["book"]["cover"]["large"]
     name = info["book"]["title"]
     name = replace_forbidden_chars(name)
     url = f"https://api.bookmate.yandex.net/api/v5/books/{uuid}/content/v4"
-    download_dir = f"mybooks/textbooks/{name}/"
+    download_dir = f"mybooks/textbooks/{series}{name}/"
     os.makedirs(os.path.dirname(download_dir), exist_ok=True)
     asyncio.run(download_file(picture_url,f'{download_dir}{name}.jpeg'))
     if info:
@@ -265,7 +265,7 @@ if __name__ == "__main__":
         print("the following arguments are required: --audiobooks or --books or --comicbooks or --series or --serials")
 
     if (args.books):
-       download_text_book(args.books)
+       download_text_book(args.books,"")
 
     if (args.comicbooks):
         download_comic_book(args.comicbooks,"")
@@ -287,6 +287,9 @@ if __name__ == "__main__":
             if book_urls[child]['resource_type'] == "comicbook":
                 print(book_urls[child]['resource']['uuid'])
                 download_comic_book(book_urls[child]['resource']['uuid'],f"{name}/{child+1}. ")
+            if book_urls[child]['resource_type'] == "book":
+                print(book_urls[child]['resource']['uuid'])
+                download_text_book(book_urls[child]['resource']['uuid'],f"{name}/{child+1}. ")
 
     if (args.serials):
         url = f'https://api.bookmate.yandex.net/api/v5/books/{args.serials}/episodes'
