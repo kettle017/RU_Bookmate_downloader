@@ -14,7 +14,7 @@
 <h3 align="left"><pre>python RUBookmatedownloader.py --books ID</pre></h3>
 4)Скачать комикс с ID
 <h3 align="left"><pre>python RUBookmatedownloader.py --comicbooks ID</pre></h3>
-5)Скачать серию текстовых книг
+5)Скачать текстовую книгу, разбитую на несколько частей ("serials" в ссылке)
 <h3 align="left"><pre>python RUBookmatedownloader.py --serials ID</pre></h3>
-5)Скачать серию аудиокниг
+5)Скачать серию текстовых книг, аудиокниг или комиксов ("series" в ссылке)
 <h3 align="left"><pre>python RUBookmatedownloader.py --series ID</pre></h3>
