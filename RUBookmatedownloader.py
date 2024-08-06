@@ -162,7 +162,7 @@ def epub_to_fb2(epub_path,fb2_path):
 
 def download_text_book(uuid):
     info_url = f"https://api.bookmate.yandex.net/api/v5/books/{uuid}"
-    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    info = json.loads(asyncio.run(send_request(info_url,headers)).text)
     picture_url = info["book"]["cover"]["large"]
     name = info["book"]["title"]
     name = replace_forbidden_chars(name)
@@ -183,7 +183,7 @@ def download_text_book(uuid):
 
 def download_comic_book(uuid,series):
     info_url = f"https://api.bookmate.yandex.net/api/v5/comicbooks/{uuid}"
-    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    info = json.loads(asyncio.run(send_request(info_url,headers)).text)
     picture_url = info["comicbook"]["cover"]["large"]
 
     name = info["comicbook"]["title"]
@@ -210,7 +210,7 @@ def download_comic_book(uuid,series):
 
 def download_audio_book (uuid,series):
     info_url = f"https://api.bookmate.yandex.net/api/v5/audiobooks/{uuid}"
-    info = json.loads(asyncio.run(send_request(info_url,None)).text)
+    info = json.loads(asyncio.run(send_request(info_url,headers)).text)
     picture_url = info["audiobook"]["cover"]["large"]
     name = info["audiobook"]["title"]
     name = replace_forbidden_chars(name)
