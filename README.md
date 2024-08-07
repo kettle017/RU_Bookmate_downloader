@@ -8,14 +8,14 @@
 ## Примеры запуска скрипта:
 Для определения нужного флага смотрите на URL, в нем всегда есть подсказка: https://bookmate.ru/<флаг>/<id>\
 1. Скачать аудиокнигу в максимальном качестве:\
-`python RUBookmatedownloader.py --audiobooks <id> --maxbitrate True`
+`python RUBookmatedownloader.py audiobook <id> --maxbitrate True`
 3. Скачать аудиокнигу в обычном качестве:\
-`python RUBookmatedownloader.py --audiobooks <id>`
+`python RUBookmatedownloader.py audiobook <id>`
 4. Скачать текстовую книгу:\
-`python RUBookmatedownloader.py --books <id>`
+`python RUBookmatedownloader.py book <id>`
 5. Скачать комикс:\
-`python RUBookmatedownloader.py --comicbooks <id>`
+`python RUBookmatedownloader.py comicbook <id>`
 6. Скачать текстовую книгу, разбитую на несколько частей:\
-`python RUBookmatedownloader.py --serials <id>`
+`python RUBookmatedownloader.py serial <id>`
 5. Скачать серию текстовых книг, аудиокниг или комиксов:\
-`python RUBookmatedownloader.py --series <id>`
+`python RUBookmatedownloader.py series <id>`
