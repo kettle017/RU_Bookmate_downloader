@@ -8,7 +8,7 @@
 ## Примеры запуска скрипта:
 Для определения нужного флага смотрите на URL, в нем всегда есть подсказка: https://bookmate.ru/<флаг>/<id>\
 1. Скачать аудиокнигу в максимальном качестве:\
-`python RUBookmatedownloader.py audiobook <id> --maxbitrate True`
+`python RUBookmatedownloader.py audiobook <id> --max_bitrate`
 3. Скачать аудиокнигу в обычном качестве:\
 `python RUBookmatedownloader.py audiobook <id>`
 4. Скачать текстовую книгу:\
