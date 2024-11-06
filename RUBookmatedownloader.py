@@ -70,13 +70,14 @@ URLS = {
 
 
 def get_auth_token():
-    if os.path.isfile("token.txt"):
-        with open("token.txt", encoding='utf-8') as file:
+    token_file = "token.txt"
+    if os.path.isfile(token_file):
+        with open(token_file, encoding='utf-8') as file:
             return file.read()
     if HEADERS['auth-token']:
         return HEADERS['auth-token']
     auth_token = run_auth_webview()
-    with open("token.txt", "w", encoding='utf-8') as file:
+    with open(token_file, "w", encoding='utf-8') as file:
         file.write(auth_token)
     return auth_token
 
@@ -199,6 +200,8 @@ def get_resource_info(resource_type, uuid, series=''):
         picture_url = info[resource_type]["cover"]["large"]
         name = info[resource_type]["title"]
         name = replace_forbidden_chars(name)
+        namelist = name.split(". ", 2)[:2]
+        name = "_".join(namelist)
         download_dir = f"mybooks/{'series' if series else resource_type}/{series}{name}/"
         path = f'{download_dir}{name}'
         os.makedirs(os.path.dirname(download_dir), exist_ok=True)
@@ -206,6 +209,76 @@ def get_resource_info(resource_type, uuid, series=''):
         with open(f"{path}.json", 'w', encoding='utf-8') as file:
             file.write(json.dumps(info, ensure_ascii=False))
         print(f"File downloaded successfully to {path}.json")
+        book_info = info[resource_type]['annotation']
+        book_info += "\n\n"
+        if info[resource_type]['age_restriction'] :
+            if (int (info[resource_type]['age_restriction'])>0):
+                 book_info += "\nВозрастные ограничения: " 
+                 book_info += info[resource_type]['age_restriction'] + "+"
+        if info[resource_type]['owner_catalog_title']:
+            book_info += "\nПравообладатель: " 
+            book_info += info[resource_type]['owner_catalog_title'] 
+        if info[resource_type]['publishers']:
+            i = 0
+            for publisher in info[resource_type]['publishers']:
+                 if i >0:
+                       book_info += ", "
+                 else: 
+                       book_info +=  "\nИздательство: " 
+                 book_info += publisher['name']
+                 i += 1
+        if info[resource_type]['publication_date']:
+            book_info += "\nГод выхода издания: " 
+            import datetime as dt
+            epoch_time = int(info[resource_type]['publication_date'])
+            book_info += dt.datetime.fromtimestamp(epoch_time).strftime('%Y')
+            
+        if info[resource_type]['duration']:
+            book_info += "\nДлительность: " 
+            epoch_time = int(info[resource_type]['duration'])
+            seconds = epoch_time % 60
+            minutes = int (epoch_time / 60) % 60
+            hours = int (epoch_time / 3600)
+            if hours > 0:
+            	book_info += str(hours) + " ч. "
+            book_info += str(minutes) + " мин. "
+            book_info += str(seconds) + " сек. "	
+                 
+        if info[resource_type]['translators']:
+            i = 0
+            for translator in info[resource_type]['translators']:
+                 if i >0:
+                       book_info += ", "
+                 else: 
+                       book_info +=  "\nПеревод: " 
+                 book_info += translator['name']
+                 i += 1
+                 
+        if info[resource_type]['narrators']:
+            i = 0
+            for narrator in info[resource_type]['narrators']:
+                 if i >0:
+                       book_info += ", "
+                 else: 
+                       book_info +=  "\nОзвучили: " 
+                 book_info += narrator['name']
+                 i += 1     
+
+                 
+        if info[resource_type]['topics']:
+            i = 0
+            for topic in info[resource_type]['topics']:
+                 if topic['title'] != "Аудио": 
+                      if i >0:
+                            book_info += ", "
+                      else: 
+                            book_info +=  "\n\nТеги: " 
+                      book_info += topic['title']
+                 i += 1
+            
+            
+        write_book_info (book_info, f"{download_dir}/info")
+        print(f"Annotation saved successfully to {path}/info.txt")
     return path
 
 
@@ -219,7 +292,7 @@ def download_book(uuid, series='', serial_path=None):
         'book', uuid, series)
     asyncio.run(download_file(
         URLS['book']['contentUrl'].format(uuid=uuid), f'{path}.epub'))
-    epub_to_fb2(f"{path}.epub", f"{path}.fb2")
+    #epub_to_fb2(f"{path}.epub", f"{path}.fb2")
 
 
 def download_audiobook(uuid, series='', max_bitrate=False):
@@ -228,26 +301,49 @@ def download_audiobook(uuid, series='', max_bitrate=False):
     if resp:
         bitrate = 'max_bit_rate' if max_bitrate else 'min_bit_rate'
         json_data = resp['tracks']
-        files = os.listdir(os.path.dirname(path))
+        book_dir = os.path.dirname(path)
+        files = os.listdir(book_dir)
+        ntracks = len (json_data)
+        if ntracks < 10:
+            width = 1
+        elif ntracks >=10 and ntracks <100:
+            width = 2
+        else:
+            width = 3
+        
         for track in json_data:
-            name = f'Глава_{track["number"]+1}.m4a'
+       	    #print (json_data)
+       	    ntrack = f'{track["number"]}'
+       	    i = len (ntrack)
+       	    while i < width:
+       	     	ntrack = '0' + ntrack
+       	     	i = i + 1
+            name = 'Глава_' + ntrack + '.m4a'
             if name not in files:
                 download_url = track['offline'][bitrate]['url'].replace(".m3u8", ".m4a")
                 asyncio.run(download_file(
-                    download_url, f'{os.path.dirname(path)}/{name}'))
-
+                    download_url, f"{book_dir}/{name}"))
+            
+def write_book_info (text, path):
+    with open(f"{path}.txt", 'w', encoding='utf-8') as file:
+            file.write(text)
+            file.close()
 
 def download_comicbook(uuid, series=''):
     path = get_resource_info('comicbook', uuid, series)
     resp = get_resource_json('comicbook', uuid)
     if resp:
         download_url = resp["uris"]["zip"]
-        asyncio.run(download_file(download_url, f'{path}.cbr'))
-        with zipfile.ZipFile(f'{path}.cbr', 'r') as zip_ref:
-            zip_ref.extractall(os.path.dirname(path))
-        shutil.rmtree(os.path.dirname(path)+"/preview",
+        namelist = path.split(". ", 2)[:2]
+        name =  "_".join(namelist)
+        #print ("New comicbook name"+ name)
+        download_dir = os.path.dirname(path)
+        asyncio.run(download_file(download_url, f'{name}.cbr'))
+        with zipfile.ZipFile(f'{name}.cbr', 'r') as zip_ref:
+            zip_ref.extractall(download_dir)
+        shutil.rmtree(download_dir+"/preview",
                       ignore_errors=False, onerror=None)
-        create_pdf_from_images(os.path.dirname(path), f"{path}.pdf")
+        create_pdf_from_images(download_dir, f"{name}.pdf")
 
 
 def download_serial(uuid):
