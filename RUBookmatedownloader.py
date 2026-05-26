@@ -155,11 +155,19 @@ async def send_request(url):
                 time.sleep(5)
 
 
+def natural_sort_key(s):
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+
+
 def create_pdf_from_images(images_folder, output_pdf):
     c = canvas.Canvas(output_pdf, pagesize=letter)
     width, height = letter
 
-    images = filter(lambda file: file.endswith(".jpeg"), os.listdir(images_folder))
+    images = [
+        file for file in os.listdir(images_folder)
+        if file.lower().endswith(".jpeg") and file.lower().startswith("page")
+    ]
+    images.sort(key=natural_sort_key)
 
     for image in images:
         img_path = os.path.join(images_folder, image)
